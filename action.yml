@@ -1,0 +1,37 @@
+name: Fast Submodule Checkout
+description: Updates or clones a submodule much faster by enabling caching
+inputs:
+  submodule:
+    description: Path to submodule (relative from repo root)
+    required: true
+outputs: {}
+runs:
+  using: composite
+  steps:
+    - name: Get submodule hash of ${{ inputs.submodule }}
+      id: get-submodule-hash
+      uses: 0xFEEDC0DE64/get_submodule_hash@main
+      with:
+        submodule: ${{ inputs.submodule }}
+
+    - name: Cache submodule ${{ inputs.submodule }}
+      id: cache-submodule
+      uses: actions/cache@v2
+      with:
+        path: |
+          .git/modules/${{ inputs.submodule }}
+          ${{ inputs.submodule }}
+        key: ${{ runner.os }}-${{ steps.get-submodule-hash.outputs.hash }}
+
+    - name: Checkout submodule ${{ inputs.submodule }}
+      # GitHub doesnt support if
+      #if: steps.cache-submodule.outputs.cache-hit != 'true'
+      #run: git submodule update --init --recursive ${{ inputs.submodule }}
+      run: |
+        if echo ${{ steps.cache-submodule.outputs.cache-hit }} | grep -c "true"
+        then
+          echo "Cache hit - skipping submodule update"
+        else
+          git submodule update --init --recursive ${{ inputs.submodule }}
+        fi
+      shell: bash
