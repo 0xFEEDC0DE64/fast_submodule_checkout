@@ -4,6 +4,9 @@ inputs:
   submodule:
     description: Path to submodule (relative from repo root)
     required: true
+  repo:
+    description: Path to the repo
+    required: false
 outputs: {}
 runs:
   using: composite
@@ -13,14 +16,15 @@ runs:
       uses: 0xFEEDC0DE64/get_submodule_hash@main
       with:
         submodule: ${{ inputs.submodule }}
+        repo: ${{ inputs.repo }}
 
     - name: Cache submodule ${{ inputs.submodule }}
       id: cache-submodule
       uses: actions/cache@v2
       with:
         path: |
-          .git/modules/${{ inputs.submodule }}
-          ${{ inputs.submodule }}
+          ./${{ inputs.repo }}/.git/modules/${{ inputs.submodule }}
+          ./${{ inputs.repo }}/${{ inputs.submodule }}
         key: ${{ runner.os }}-${{ steps.get-submodule-hash.outputs.hash }}
 
     - name: Checkout submodule ${{ inputs.submodule }}
@@ -32,6 +36,12 @@ runs:
         then
           echo "Cache hit - skipping submodule update"
         else
-          git submodule update --init --recursive ${{ inputs.submodule }}
+          REPO_ARGS=
+          if [[ ! -z "${{ inputs.repo }}" ]]
+          then
+            REPO_ARGS=(-C "${{ inputs.repo }}")
+          fi
+          
+          git "${REPO_ARGS[@]}" submodule update --init --recursive ${{ inputs.submodule }}
         fi
       shell: bash
