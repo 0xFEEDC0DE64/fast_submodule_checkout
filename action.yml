@@ -36,10 +36,11 @@ runs:
         then
           echo "Cache hit - skipping submodule update"
         else
-          REPO_ARGS=
           if [[ ! -z "${{ inputs.repo }}" ]]
           then
             REPO_ARGS=(-C "${{ inputs.repo }}")
+          else
+            REPO_ARGS=()
           fi
           
           git "${REPO_ARGS[@]}" submodule update --init --recursive ${{ inputs.submodule }}
